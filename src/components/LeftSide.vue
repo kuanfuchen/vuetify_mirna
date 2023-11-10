@@ -18,7 +18,7 @@
           <v-list-subheader>Analysis</v-list-subheader>
           <v-list-item v-for="(item, i) in sideBarGroupB" :key="i" :to="item.to"
             @click="activeItem = item.value"  :active="activeItem === item.value">
-              <v-list-item-title v-text="item.title" >
+              <v-list-item-title v-text="item.title">
               </v-list-item-title>
           </v-list-item>
         </v-list>

@@ -23,6 +23,7 @@
   import DisplayTable from '../components/DisplayTable.vue';
   const tableComponentInfo = ref({});
   dataService.transferMeg$.pipe(takeUntil(comSubject$)).subscribe((miRNAInfo:object)=>{
+    console.log(miRNAInfo, 'miRNAInfo')
     miRNATabs.value = miRNAInfo.tabs;
     miRNATab.value = miRNAInfo.tabs[0];
     miRNATables.value = miRNAInfo.tabsTable;

@@ -8,21 +8,40 @@
     <v-card-text>
       <v-window v-model="useStyleTab">
         <v-window-item value="Graph">
-          <v-card class="mx-3 mt-3" width="100%" prepend-icon="mdi-home">
+          <div>
+            <div class="d-flex justify-center">
+              <div class="text-h6 w-25">
+                <p class="text-center mb-2">Sample1</p>
+                <v-select v-model="sample1Item" @update:modelValue="changeSample1"
+                :items="selctedSampleItem"
+                variant="outlined"
+                ></v-select>
+              </div>
+              <div class="text-h6 mx-5">V.S</div>
+              <div class="text-h6 w-25">
+                <p class="text-center mb-2">Sample2</p>
+                <v-select v-model="sample2Item" @update:modelValue="changeSample2"
+                  :items="selctedSampleItem"
+                  variant="outlined"
+                ></v-select>
+              </div>
+            </div>
+          </div>
+          <v-card class="mx-3 mt-3" width="100%">
             <template v-slot:title>
               Scatter Plot
             </template>
-            <div id="scatterplot_visualization"></div>
+            <ScatterPlot :scatterGraphInfo="selectedSampleTitle"></ScatterPlot>
           </v-card>
           <v-card class="mx-3 mt-3" width="100%">
             <template v-slot:title>
               Box Plot
             </template>
-            <div id="Boxplot_visualization"></div>
+            <BoxPlot></BoxPlot>
           </v-card>
         </v-window-item>
         <v-window-item value="Table">
-          <!-- <MiRNATabs class="px-2 mt-3"></MiRNATabs> -->
+            <!-- <MiRNATabs class="px-2 mt-3" ></MiRNATabs> -->
           <!--  -->
           <v-tabs v-model="miRNATab" class="text-none">
             <v-tab class="text-none" v-for="(tab, i) in miRNATabs" :key="i" @click="selectedTable(i)">{{ tab }}</v-tab>
@@ -38,82 +57,64 @@
         </v-window-item>
       </v-window>
     </v-card-text>
-    
   </div>
 </template>
 <script setup lang="ts">
   /* eslint-disable */
-  import Plotly from 'plotly.js-dist-min';
-  import { onMounted, ref } from 'vue';
-  import { dataService } from '../service/data_service';
+  import { onMounted, ref, reactive } from 'vue';
+  import { dataService } from '../service/data_service.js';
   import { Subject, takeUntil, debounceTime } from 'rxjs';
   import DisplayTable from '../components/DisplayTable.vue';
+  import BoxPlot from '../components/poltly/BoxPlot.vue';
+  import ScatterPlot from '../components/poltly/ScatterPlot.vue'
   // import MiRNATabs from '../components/MiRNATabs.vue';
   const comSubject$ = new Subject();
   const tableComponentInfo = ref({});
   const miRNATab = ref('');
   const miRNATabs = ref([]);
   const miRNATables = ref([]);
-  const trace1 = {
-  x: [1, 2, 3, 4, 5],
-  y: [1, 6, 3, 6, 1],
-  mode: 'markers',
-  type: 'scatter',
-  name: 'Team A',
-  text: ['A-1', 'A-2', 'A-3', 'A-4', 'A-5'],
-  marker: { size: 12 }
-};
-const trace2 = {
-  x: [1.5, 2.5, 3.5, 4.5, 5.5],
-  y: [4, 1, 7, 1, 4],
-  mode: 'markers',
-  type: 'scatter',
-  name: 'Team B',
-  text: ['B-a', 'B-b', 'B-c', 'B-d', 'B-e'],
-  marker: { size: 12 }
-};
-const data = [ trace1, trace2 ];
-const layout = {
-  xaxis: {
-    range: [ 0.75, 5.25 ]
-  },
-  yaxis: {
-    range: [0, 8]
-  },
-  title:'Data Labels Hover'
-};
-// 
-const y0 = [];
-const y1 = [];
-for (let i = 0; i < 50; i ++) {
-	y0[i] = Math.random();
-	y1[i] = Math.random() + 1;
+  const selctedSampleItem = ref([]);
+  const sample1Item = ref('');
+  const sample2Item = ref('');
+  const selectedSampleTitle = reactive([]);
+  const displayStyle = ref(['Graph', 'Table']);
+  const useStyleTab = ref('Graph'); 
+  dataService.visualization_Plot$.pipe(takeUntil(comSubject$),debounceTime(100)).subscribe(async(visualization_info:object)=>{
+    selctedSampleItem.value = await visualization_info.headers;
+    if(visualization_info.headers.length > 1){
+      sample1Item.value = visualization_info.headers[0];
+      sample2Item.value = visualization_info.headers[1];
+      selectedSampleTitle.length = 0;
+      selectedSampleTitle.push(visualization_info.headers[0], visualization_info.headers[1])
+      // selectedSampleTitle = [visualization_info.headers[0], visualization_info.headers[1]];
+    }
+  });
+
+  dataService.handleRawReadsFolder$.pipe(takeUntil(comSubject$), debounceTime(300)).subscribe((microRNAraw)=>{
+    miRNATabs.value = microRNAraw.tabs;
+    miRNATab.value = microRNAraw.tabs[0];
+    miRNATables.value = microRNAraw.tabsTable;
+    handleTableComponent(microRNAraw.tabsTable[0]);
+    //tabs模板速度太快，資料還沒處理好就畫出介面，導致介面無資料，之後要延遲tabs時間
+    // dataService.transferHandleFinishMeg(microRNAraw);
+  });
+// const selectedTable = (item:string)=>{
+//   console.log(item)
+//   if(item === 'Table'){
+//     console.log(microRNArawTable)
+//     dataService.transferHandleFinishMeg(microRNArawTable);
+//   }
+// }
+const changeSample1 = (ev:string)=> {
+  sample1Item.value = ev;
+  selectedSampleTitle.length = 0;
+  selectedSampleTitle.push(sample1Item.value, sample2Item.value)
 }
-
-const trace3 = {
-  y: y0,
-  type: 'box'
-};
-
-const trace4 = {
-  y: y1,
-  type: 'box'
-};
-
-const boxdata = [trace3, trace4];
-
-// 
-const displayStyle = ref(['Graph', 'Table']);
-const useStyleTab = ref('Graph'); 
-
-dataService.handleRawReadsFolder$.pipe(takeUntil(comSubject$), debounceTime(300)).subscribe((microRNAraw)=>{
-  console.log(microRNAraw, 'microRNAraw')
-  miRNATabs.value = microRNAraw.tabs;
-  miRNATab.value = microRNAraw.tabs[0];
-  miRNATables.value = microRNAraw.tabsTable;
-  handleTableComponent(microRNAraw.tabsTable[0]);
-  // dataService.transferHandleFinishMeg(microRNAraw);
-});
+const changeSample2 = (ev:string)=> {
+  sample2Item.value = ev;
+  selectedSampleTitle.length = 0;
+  selectedSampleTitle.push(sample1Item.value, sample2Item.value)
+}
 const selectedTable = (index:number)=>{
   if(index > miRNATables.value.length || index < 0) return;
   handleTableComponent(miRNATables.value[index])
@@ -121,16 +122,6 @@ const selectedTable = (index:number)=>{
 const handleTableComponent = (tableInfo:object) => {
   tableComponentInfo.value =  tableInfo;
 };
-const drawGraphScatterPlot_visualization = ()=>{
-  const scatterplot_visualization = document.getElementById('scatterplot_visualization');
-  Plotly.newPlot(scatterplot_visualization, data, layout);
-};
-const drawGraphBoxplot_visualization = () =>{
-  const boxplot_visualization = document.getElementById('Boxplot_visualization');
-  Plotly.newPlot(boxplot_visualization, boxdata)
-}
-onMounted(()=>{
-  drawGraphScatterPlot_visualization();
-  drawGraphBoxplot_visualization();
+onMounted(async() => {
 })
 </script>

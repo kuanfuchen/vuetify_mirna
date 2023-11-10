@@ -2,6 +2,7 @@ import { BehaviorSubject, Subject } from 'rxjs';
 const _ReadAlignmentSubject$ = new BehaviorSubject({});
 const _visualization_table$ = new BehaviorSubject({});
 const _transferMeg$ = new Subject({});
+const _visualization_Plot$ = new BehaviorSubject();
 // let microRNA_countTab = {};
 
 // txt
@@ -35,7 +36,29 @@ const handleRawReadsFolder = async() => {
     tabs: microRNA_countTitle,
     tabsTable:[handleFinish_microRNA_counts, handleFinish_CPM_Normalized_counts]
   }
+  graphPlotVisualization(handleFinish_CPM_Normalized_counts)
   await _visualization_table$.next(microRNA_countTab);
+}
+const graphPlotVisualization = async(normalized_count)=>{
+  // console.log(normalized_count, 'normalized_count')
+  if(!normalized_count.headers || !normalized_count.body) return;
+  const headersSort = normalized_count.headers.filter((header, i)=> {if(i > 5)return header });
+  const normalized_Info = [];
+  for(let i = 0 ; normalized_count.body.length > i ; i++){
+    normalized_Info[i] = [];
+    normalized_count.body[i].forEach((body, index)=>{ 
+      if(index > 5){
+        const numberBody = Number(body);
+        if(numberBody === 0){
+          normalized_Info[i].push(numberBody)
+        }else{
+          const log10Body = Math.log10(numberBody);
+          normalized_Info[i].push(log10Body)
+        }
+        
+    } });
+  }
+  await _visualization_Plot$.next({headers: headersSort, info: normalized_Info});
 }
 const handleSplitTxt = (tableInfo) => {
   const miRNATable = {
@@ -62,5 +85,6 @@ export const dataService = {
   transferHandleFinishMeg,
   ReadAlignmentSubject$: _ReadAlignmentSubject$.asObservable(),
   handleRawReadsFolder$: _visualization_table$.asObservable(),
+  visualization_Plot$: _visualization_Plot$.asObservable(),
   transferMeg$: _transferMeg$.asObservable(),
 } 

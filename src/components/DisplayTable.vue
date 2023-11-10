@@ -12,7 +12,7 @@
 <script setup lang="ts">
   import { ref, onMounted } from 'vue';
   import { VDataTable } from "vuetify/labs/VDataTable";
-  const itemsPerPage = ref(10)
+  const itemsPerPage = ref(20)
   const definedprops = defineProps (['table']);
   const headers:any = ref([]);
   const tableBody = ref([]);
